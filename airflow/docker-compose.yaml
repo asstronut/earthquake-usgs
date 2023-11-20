@@ -87,7 +87,8 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
     - ${GOOGLE_APPLICATION_CREDENTIALS_FOLDER}:/.google/credentials:ro
-    - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/data
+    - ${AIRFLOW_PROJ_DIR:-.}/data/raw/json:/opt/airflow/data/raw/json
+    - ${AIRFLOW_PROJ_DIR:-.}/data/raw/parquet:/opt/airflow/data/raw/parquet
     - ../spark:/opt/airflow/sources
   
   user: "${AIRFLOW_UID:-50000}:0"
