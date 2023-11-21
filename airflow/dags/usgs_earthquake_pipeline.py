@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timedelta
 import requests
 import json
+import pandas as pd
 
 from airflow import DAG
 from airflow.decorators import task
@@ -27,7 +28,7 @@ START_DATE = datetime(2023, 1, 1)
 END_DATE = datetime(2023, 1, 5)
 
 with DAG(
-    dag_id="usgs_earthquake_pipeline",
+    dag_id="usgs_earthquake_pipeline_4",
     description="""Data engineering pipeline to collect, transform, and load earthquake data from USGS website""",
     schedule="0 0 * * *",
     default_args=default_args,
@@ -39,19 +40,88 @@ with DAG(
 ) as dag:
     starttime = "{{ ds }}"
     endtime = "{{ next_ds }}"
-    api_url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime={starttime}&endtime={endtime}"
-    LOCAL_JSON = "data/raw/json"
 
-    @task
+    api_url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime={starttime}&endtime={endtime}"
+
+    json_file_name = "data_{{ ds }}.json"
+    pq_file_name = "data_{{ ds }}.parquet"
+
+    LOCAL_JSON_FOLDER = "data/raw/json"
+    LOCAL_PARQUET_FOLDER = "data/raw/parquet"
+    destination_json = f"raw/json/{json_file_name}"
+    destination_parquet = f"raw/parquet/{pq_file_name}"
+
+    @dag.task
     def fetch_data(url):
+        """Pull JSON data from API"""
         json_data = requests.get(url).json()
         return json_data
 
-    @task
-    def write_json_to_local(path, json_data, file_name):
-        with open(f"{path}/{file_name}", "w") as f:
-            json.dump(json_data, f)
-        return f"{path}/{file_name}"
-
     json_data = fetch_data(api_url)
-    json_local_path = write_json_to_local(LOCAL_JSON, json_data, "data_{{ ds }}.json")
+
+    @dag.task
+    def save_json_to_local(json_data, folder_path, file_name):
+        """Save json data to local host"""
+        local_path = f"{folder_path}/{file_name}"
+        with open(local_path, "w") as f:
+            json.dump(json_data, f)
+        return local_path
+
+    json_local_path = save_json_to_local(json_data, LOCAL_JSON_FOLDER, json_file_name)
+
+    @dag.task
+    def save_json_as_pq(json_data, folder_path, file_name):
+        """Normalize JSON data and save data as parquet file"""
+        df_json_data = pd.json_normalize(
+            json_data, record_path=["features"], meta="metadata", sep="_"
+        )
+
+        df_json_data[
+            [
+                "geometry_coordinates_latitude",
+                "geometry_coordinates_longitude",
+                "geometry_coordinates_depth",
+            ]
+        ] = df_json_data["geometry_coordinates"].tolist()
+        df_json_data.drop(["geometry_coordinates"], axis=1, inplace=True)
+
+        df_json_data = pd.concat(
+            [
+                df_json_data,
+                pd.json_normalize(df_json_data["metadata"]).add_prefix("metadata_"),
+            ],
+            axis=1,
+        )
+        df_json_data.drop(["metadata"], axis=1, inplace=True)
+
+        df_json_data["metadata_generated_datetime"] = pd.to_datetime(
+            df_json_data["metadata_generated"], unit="ms"
+        )
+        df_json_data["properties_time_datetime"] = pd.to_datetime(
+            df_json_data["properties_time"], unit="ms"
+        )
+        df_json_data["properties_updated_datetime"] = pd.to_datetime(
+            df_json_data["properties_updated"], unit="ms"
+        )
+        df_json_data[["properties_felt", "properties_nst"]] = df_json_data[
+            ["properties_felt", "properties_nst"]
+        ].astype("Int64")
+
+        local_path = f"{folder_path}/{file_name}"
+        df_json_data.to_parquet(local_path, compression="gzip")
+
+        return local_path
+
+    pq_local_path = save_json_as_pq(json_data, LOCAL_PARQUET_FOLDER, pq_file_name)
+
+    @dag.task
+    def upload_to_gcs(local_path, bucket_name, destination_path):
+        """Upload collected data (json and parquet) to Google Cloud Storage"""
+        client = storage.Client()
+        bucket = client.bucket(bucket_name)
+
+        blob = bucket.blob(destination_path)
+        blob.upload_from_filename(local_path)
+
+    upload_to_gcs(json_local_path, BUCKET, destination_json)
+    upload_to_gcs(pq_local_path, BUCKET, destination_parquet)
