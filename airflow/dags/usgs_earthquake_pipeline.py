@@ -1,18 +1,11 @@
 import os
-import logging
 from datetime import datetime, timedelta
 import requests
 import json
 import pandas as pd
 
 from airflow import DAG
-from airflow.decorators import task
-from airflow.providers.google.cloud.operators.bigquery import (
-    BigQueryInsertJobOperator,
-    BigQueryCreateExternalTableOperator,
-)
 from google.cloud import storage
-from google.oauth2 import service_account
 
 PROJECT_ID = os.environ.get("PROJECT_ID", "earthquake-usgs")
 BUCKET = os.environ.get("GCP_GCS_BUCKET", "earthquake-usgs_data")
@@ -28,7 +21,7 @@ START_DATE = datetime(2023, 1, 1)
 END_DATE = datetime(2023, 1, 5)
 
 with DAG(
-    dag_id="usgs_earthquake_pipeline_7",
+    dag_id="usgs_earthquake_pipeline",
     description="""Data engineering pipeline to collect, transform, and load earthquake data from USGS website""",
     schedule="0 0 * * *",
     default_args=default_args,
@@ -72,29 +65,29 @@ with DAG(
     def save_json_as_pq(json_data, folder_path, file_name):
         """Normalize JSON data and save data as parquet file"""
         df_json_data = pd.json_normalize(
-            json_data, record_path=["features"], meta="metadata"
+            json_data, record_path=["features"], meta="metadata", sep="_"
         )
 
         df_json_data[
             [
-                "geometry.coordinates.latitude",
-                "geometry.coordinates.longitude",
-                "geometry.coordinates.depth",
+                "geometry_coordinates_latitude",
+                "geometry_coordinates_longitude",
+                "geometry_coordinates_depth",
             ]
-        ] = df_json_data["geometry.coordinates"].tolist()
-        df_json_data.drop(["geometry.coordinates"], axis=1, inplace=True)
+        ] = df_json_data["geometry_coordinates"].tolist()
+        df_json_data.drop(["geometry_coordinates"], axis=1, inplace=True)
 
         df_json_data = pd.concat(
             [
                 df_json_data,
-                pd.json_normalize(df_json_data["metadata"]).add_prefix("metadata."),
+                pd.json_normalize(df_json_data["metadata"]).add_prefix("metadata_"),
             ],
             axis=1,
         )
         df_json_data.drop(["metadata"], axis=1, inplace=True)
 
-        df_json_data[["properties.felt", "properties.nst"]] = df_json_data[
-            ["properties.felt", "properties.nst"]
+        df_json_data[["properties_felt", "properties_nst"]] = df_json_data[
+            ["properties_felt", "properties_nst"]
         ].astype("Int64")
 
         local_path = f"{folder_path}/{file_name}.parquet"

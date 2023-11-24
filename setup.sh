@@ -10,7 +10,7 @@ GCP_PROJECT_DATA_LAKE_NAME=earthquake-usgs_data
 GCP_PROJECT_BQ_DATASET_NAME=earthquake_usgs
 
 # DATAPROC vars
-GCP_PROJECT_DATAPROC_CLUSTER_NAME='earthquake-usgs_cluster'
+GCP_PROJECT_DATAPROC_CLUSTER_NAME='earthquake-usgs-cluster'
 
 # 
 # DO NOT edit the following
