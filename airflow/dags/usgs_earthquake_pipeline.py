@@ -28,7 +28,7 @@ START_DATE = datetime(2023, 1, 1)
 END_DATE = datetime(2023, 1, 5)
 
 with DAG(
-    dag_id="usgs_earthquake_pipeline_4",
+    dag_id="usgs_earthquake_pipeline_7",
     description="""Data engineering pipeline to collect, transform, and load earthquake data from USGS website""",
     schedule="0 0 * * *",
     default_args=default_args,
@@ -43,13 +43,12 @@ with DAG(
 
     api_url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime={starttime}&endtime={endtime}"
 
-    json_file_name = "data_{{ ds }}.json"
-    pq_file_name = "data_{{ ds }}.parquet"
+    file_name = "data_{{ ds }}"
 
     LOCAL_JSON_FOLDER = "data/raw/json"
     LOCAL_PARQUET_FOLDER = "data/raw/parquet"
-    destination_json = f"raw/json/{json_file_name}"
-    destination_parquet = f"raw/parquet/{pq_file_name}"
+    destination_json = f"raw/json/{file_name}.json"
+    destination_parquet = f"raw/parquet/{file_name}.parquet"
 
     @dag.task
     def fetch_data(url):
@@ -62,57 +61,48 @@ with DAG(
     @dag.task
     def save_json_to_local(json_data, folder_path, file_name):
         """Save json data to local host"""
-        local_path = f"{folder_path}/{file_name}"
+        local_path = f"{folder_path}/{file_name}.json"
         with open(local_path, "w") as f:
             json.dump(json_data, f)
         return local_path
 
-    json_local_path = save_json_to_local(json_data, LOCAL_JSON_FOLDER, json_file_name)
+    json_local_path = save_json_to_local(json_data, LOCAL_JSON_FOLDER, file_name)
 
     @dag.task
     def save_json_as_pq(json_data, folder_path, file_name):
         """Normalize JSON data and save data as parquet file"""
         df_json_data = pd.json_normalize(
-            json_data, record_path=["features"], meta="metadata", sep="_"
+            json_data, record_path=["features"], meta="metadata"
         )
 
         df_json_data[
             [
-                "geometry_coordinates_latitude",
-                "geometry_coordinates_longitude",
-                "geometry_coordinates_depth",
+                "geometry.coordinates.latitude",
+                "geometry.coordinates.longitude",
+                "geometry.coordinates.depth",
             ]
-        ] = df_json_data["geometry_coordinates"].tolist()
-        df_json_data.drop(["geometry_coordinates"], axis=1, inplace=True)
+        ] = df_json_data["geometry.coordinates"].tolist()
+        df_json_data.drop(["geometry.coordinates"], axis=1, inplace=True)
 
         df_json_data = pd.concat(
             [
                 df_json_data,
-                pd.json_normalize(df_json_data["metadata"]).add_prefix("metadata_"),
+                pd.json_normalize(df_json_data["metadata"]).add_prefix("metadata."),
             ],
             axis=1,
         )
         df_json_data.drop(["metadata"], axis=1, inplace=True)
 
-        df_json_data["metadata_generated_datetime"] = pd.to_datetime(
-            df_json_data["metadata_generated"], unit="ms"
-        )
-        df_json_data["properties_time_datetime"] = pd.to_datetime(
-            df_json_data["properties_time"], unit="ms"
-        )
-        df_json_data["properties_updated_datetime"] = pd.to_datetime(
-            df_json_data["properties_updated"], unit="ms"
-        )
-        df_json_data[["properties_felt", "properties_nst"]] = df_json_data[
-            ["properties_felt", "properties_nst"]
+        df_json_data[["properties.felt", "properties.nst"]] = df_json_data[
+            ["properties.felt", "properties.nst"]
         ].astype("Int64")
 
-        local_path = f"{folder_path}/{file_name}"
+        local_path = f"{folder_path}/{file_name}.parquet"
         df_json_data.to_parquet(local_path, compression="gzip")
 
         return local_path
 
-    pq_local_path = save_json_as_pq(json_data, LOCAL_PARQUET_FOLDER, pq_file_name)
+    pq_local_path = save_json_as_pq(json_data, LOCAL_PARQUET_FOLDER, file_name)
 
     @dag.task
     def upload_to_gcs(local_path, bucket_name, destination_path):
@@ -123,5 +113,17 @@ with DAG(
         blob = bucket.blob(destination_path)
         blob.upload_from_filename(local_path)
 
-    upload_to_gcs(json_local_path, BUCKET, destination_json)
-    upload_to_gcs(pq_local_path, BUCKET, destination_parquet)
+        return local_path
+
+    json_local_path_up = upload_to_gcs(json_local_path, BUCKET, destination_json)
+    pq_local_path_up = upload_to_gcs(pq_local_path, BUCKET, destination_parquet)
+
+    @dag.task
+    def delete_local_file(*file_paths):
+        for file_path in file_paths:
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+            else:
+                print(f"Error: {file_path} not found")
+
+    delete_local_file(json_local_path_up, pq_local_path_up)
