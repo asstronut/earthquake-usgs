@@ -40,31 +40,31 @@ with DAG(
     ds = "{{ ds }}"
     year = "{{ dag_run.logical_date.strftime('%Y') }}"
 
-    # start_python_job = BeamRunPythonPipelineOperator(
-    #     runner=BeamRunnerType.DataflowRunner,
-    #     task_id="trans_pipeline_job",
-    #     py_file=source_file_path,
-    #     py_options=[],
-    #     pipeline_options={
-    #         "input": f"gs://{BUCKET}/raw/parquet/data_{ds}.parquet",
-    #         "output": f"{BQ_DATASET}.data{year}beam",
-    #         "project": PROJECT_ID,
-    #         "region": REGION,
-    #         "runner": "DataflowRunner",
-    #         "job_name": f"job-flow-{ds}",
-    #         "staging_location": f"gs://{BUCKET}/staging/",
-    #         "temp_location": f"gs://{BUCKET}/temp/",
-    #     },
-    #     py_requirements=["apache-beam[gcp]==2.52.0"],
-    #     py_interpreter="python3",
-    #     py_system_site_packages=False,
-    # )
-
-    start_python_job = DataflowTemplatedJobStartOperator(
-        template=f"gs://{BUCKET}",
-        project_id=PROJECT_ID,
-        task_id="start_template_job",
-        job_name=f"job-flow-{ds}",
+    start_python_job = BeamRunPythonPipelineOperator(
+        runner=BeamRunnerType.DataflowRunner,
+        task_id="trans_pipeline_job",
+        py_file=source_file_path,
+        py_options=[],
+        pipeline_options={
+            "input": f"gs://{BUCKET}/raw/parquet/data_{ds}.parquet",
+            "output": f"{BQ_DATASET}.data{year}beam",
+            "project": PROJECT_ID,
+            "region": REGION,
+            "runner": "DataflowRunner",
+            "job_name": f"job-flow-{ds}",
+            "staging_location": f"gs://{BUCKET}/staging/",
+            "temp_location": f"gs://{BUCKET}/temp/",
+        },
+        py_requirements=["apache-beam[gcp]==2.52.0"],
+        py_interpreter="python3",
+        py_system_site_packages=False,
     )
+
+    # start_python_job = DataflowTemplatedJobStartOperator(
+    #     template=f"gs://{BUCKET}",
+    #     project_id=PROJECT_ID,
+    #     task_id="start_template_job",
+    #     job_name=f"job-flow-{ds}",
+    # )
 
     start_python_job
