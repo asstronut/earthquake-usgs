@@ -3,7 +3,7 @@ from datetime import datetime
 import argparse
 
 import apache_beam as beam
-from apache_beam.options.pipeline_options import PipelineOptions
+from apache_beam.options.pipeline_options import _BeamArgumentParser, PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 
 
@@ -36,17 +36,32 @@ class RenameColumns(beam.DoFn):
         yield new_element
 
 
+class TransformOptions(PipelineOptions):
+    @classmethod
+    def _add_argparse_args(cls, parser: _BeamArgumentParser) -> None:
+        parser.add_value_provider_argument(
+            "--input",
+            default="gs://earthquake-usgs_data/raw/parquet/data_2023-01-01.parquet",
+            help="Path of the file to read from",
+        )
+        parser.add_argument(
+            "--output", required=True, help="Big Query table to store transformed data"
+        )
+
+
 def run(argv=None, save_main_session=True):
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--input",
-        default="gs://earthquake-usgs_data/raw/parquet/data_2023-01-01.parquet",
-    )
-    parser.add_argument("--output", default="earthquake_usgs.data2023beam")
+    # parser.add_argument(
+    #     "--input",
+    #     default="gs://earthquake-usgs_data/raw/parquet/data_2023-01-01.parquet",
+    # )
+    # parser.add_argument(
+    #     "--output", required=True, help="Big Query table to store transformed data"
+    # )
 
-    args, beam_args = parser.parse_known_args(argv)
+    args, pipeline_args = parser.parse_known_args(argv)
 
-    pipeline_options = PipelineOptions(beam_args)
+    pipeline_options = PipelineOptions(pipeline_args)
     pipeline_options.view_as(SetupOptions).save_main_session = save_main_session
 
     selected_cols = [
@@ -132,8 +147,9 @@ def run(argv=None, save_main_session=True):
     }
 
     with beam.Pipeline(options=pipeline_options) as p:
+        transform_options = pipeline_options.view_as(TransformOptions)
         # start pipeline
-        pq_data = p | "GetParquet" >> beam.io.ReadFromParquet(args.input)
+        pq_data = p | "GetParquet" >> beam.io.ReadFromParquet(transform_options.input)
 
         transformed_data = (
             pq_data
@@ -145,7 +161,7 @@ def run(argv=None, save_main_session=True):
         )
 
         transformed_data | "LoadToBigQuery" >> beam.io.WriteToBigQuery(
-            table=args.output,
+            table=transform_options.output,
             schema=table_schema,
             create_disposition=beam.io.BigQueryDisposition.CREATE_IF_NEEDED,
             write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND,
