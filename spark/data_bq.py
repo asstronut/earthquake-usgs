@@ -50,19 +50,20 @@ class RenameColumns(beam.DoFn):
 
 
 def run():
-    argv = [
-        "--job_name=examplejob",
-        "--save_main_session",
-        "--project={0}".format(PROJECT),
-        "--staging_location=gs://{0}/staging/".format(BUCKET),
-        "--temp_location=gs://{0}/temp/".format(BUCKET),
-        "--region={0}".format(REGION),
-        "--runner=DataflowRunner",
-    ]
-    p = beam.Pipeline(argv=argv)
+    options = {
+        "project": PROJECT,
+        "region": REGION,
+        "runner": "DataflowRunner",
+        "job_name": "example_job_airflow",
+        "staging_location": f"gs://{BUCKET}/staging/",
+        "temp_location": f"gs://{BUCKET}/temp/",
+        "save_main_session": True,
+    }
+    pipeline_options = beam.pipeline_context.pipeline.PipelineOptions(
+        flags=[], **options
+    )
+    p = beam.Pipeline(options=pipeline_options)
     inp_path = f"gs://{BUCKET}/raw/parquet/*"
-    # output_prefix = f"gs://{BUCKET}/transform/parquet/"
-    # output_prefix = f"data/data.csv"
 
     selected_cols = [
         "id",
