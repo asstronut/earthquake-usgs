@@ -6,8 +6,12 @@ import pandas as pd
 
 from airflow import DAG
 from google.cloud import storage
+from airflow.providers.google.cloud.operators.dataflow import (
+    DataflowTemplatedJobStartOperator,
+)
 
-PROJECT_ID = os.environ.get("PROJECT_ID", "earthquake-usgs")
+PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "earthquake-usgs")
+REGION = os.environ.get("GCP_REGION")
 BUCKET = os.environ.get("GCP_GCS_BUCKET", "earthquake-usgs_data")
 BIGQUERY_DATASET = os.environ.get("GCP_BQ_DATASET", "earthquake_usgs")
 TEMP_STORAGE_PATH = os.getenv("TEMP_STORAGE_PATH", "not-found")
@@ -17,13 +21,13 @@ default_args = {
     "retries": 1,
     "retry_delay": timedelta(seconds=30),
 }
-START_DATE = datetime(2023, 1, 1)
-END_DATE = datetime(2023, 1, 5)
+START_DATE = datetime(2013, 1, 1)
+END_DATE = datetime(2023, 2, 1)
 
 with DAG(
     dag_id="usgs_earthquake_pipeline",
     description="""Data engineering pipeline to collect, transform, and load earthquake data from USGS website""",
-    schedule="0 0 * * *",
+    schedule="0 0 1 * *",
     default_args=default_args,
     start_date=START_DATE,
     end_date=END_DATE,
@@ -33,6 +37,7 @@ with DAG(
 ) as dag:
     starttime = "{{ ds }}"
     endtime = "{{ next_ds }}"
+    year = "{{ dag_run.logical_date.strftime('%Y') }}"
 
     api_url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime={starttime}&endtime={endtime}"
 
@@ -49,8 +54,6 @@ with DAG(
         json_data = requests.get(url).json()
         return json_data
 
-    json_data = fetch_data(api_url)
-
     @dag.task
     def save_json_to_local(json_data, folder_path, file_name):
         """Save json data to local host"""
@@ -58,8 +61,6 @@ with DAG(
         with open(local_path, "w") as f:
             json.dump(json_data, f)
         return local_path
-
-    json_local_path = save_json_to_local(json_data, LOCAL_JSON_FOLDER, file_name)
 
     @dag.task
     def save_json_as_pq(json_data, folder_path, file_name):
@@ -95,8 +96,6 @@ with DAG(
 
         return local_path
 
-    pq_local_path = save_json_as_pq(json_data, LOCAL_PARQUET_FOLDER, file_name)
-
     @dag.task
     def upload_to_gcs(local_path, bucket_name, destination_path):
         """Upload collected data (json and parquet) to Google Cloud Storage"""
@@ -108,9 +107,6 @@ with DAG(
 
         return local_path
 
-    json_local_path_up = upload_to_gcs(json_local_path, BUCKET, destination_json)
-    pq_local_path_up = upload_to_gcs(pq_local_path, BUCKET, destination_parquet)
-
     @dag.task
     def delete_local_file(*file_paths):
         for file_path in file_paths:
@@ -119,4 +115,31 @@ with DAG(
             else:
                 print(f"Error: {file_path} not found")
 
-    delete_local_file(json_local_path_up, pq_local_path_up)
+    start_python_job = DataflowTemplatedJobStartOperator(
+        template=f"gs://{BUCKET}/templates/TransformData",
+        job_name=f"job-flow-{starttime}",
+        task_id="start_dataflow_template_job",
+        parameters={
+            "input": f"gs://{BUCKET}/raw/parquet/data_{starttime}.parquet",
+            "output": f"{BIGQUERY_DATASET}.earthquake{year}",
+        },
+        dataflow_default_options={
+            "project": PROJECT_ID,
+            "region": REGION,
+            "runner": "DataflowRunner",
+            "staging_location": f"gs://{BUCKET}/staging/",
+            "temp_location": f"gs://{BUCKET}/temp/",
+        },
+    )
+
+    json_data = fetch_data(api_url)
+
+    json_local_path = save_json_to_local(json_data, LOCAL_JSON_FOLDER, file_name)
+
+    pq_local_path = save_json_as_pq(json_data, LOCAL_PARQUET_FOLDER, file_name)
+
+    json_local_path_up = upload_to_gcs(json_local_path, BUCKET, destination_json)
+    pq_local_path_up = upload_to_gcs(pq_local_path, BUCKET, destination_parquet)
+
+    local_file_deleted = delete_local_file(json_local_path_up, pq_local_path_up)
+    local_file_deleted >> start_python_job

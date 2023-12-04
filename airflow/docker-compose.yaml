@@ -89,7 +89,7 @@ x-airflow-common:
     - ${GOOGLE_APPLICATION_CREDENTIALS_FOLDER}:/.google/credentials:ro
     - ${AIRFLOW_PROJ_DIR:-.}/data/raw/json:/opt/airflow/data/raw/json
     - ${AIRFLOW_PROJ_DIR:-.}/data/raw/parquet:/opt/airflow/data/raw/parquet
-    - ../spark:/opt/airflow/sources
+    - ../sources:/opt/airflow/sources
   
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:

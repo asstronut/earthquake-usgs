@@ -51,13 +51,6 @@ class TransformOptions(PipelineOptions):
 
 def run(argv=None, save_main_session=True):
     parser = argparse.ArgumentParser()
-    # parser.add_argument(
-    #     "--input",
-    #     default="gs://earthquake-usgs_data/raw/parquet/data_2023-01-01.parquet",
-    # )
-    # parser.add_argument(
-    #     "--output", required=True, help="Big Query table to store transformed data"
-    # )
 
     args, pipeline_args = parser.parse_known_args(argv)
 
