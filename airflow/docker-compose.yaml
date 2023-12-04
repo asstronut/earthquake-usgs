@@ -80,7 +80,6 @@ x-airflow-common:
     GCP_REGION: ${GCP_PROJECT_REGION}
     TEMP_STORAGE_PATH: /opt/airflow/data
     SOURCES_PATH: /opt/airflow/sources
-    GCP_DATAPROC_CLUSTER: ${GCP_PROJECT_DATAPROC_CLUSTER_NAME}
   
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
