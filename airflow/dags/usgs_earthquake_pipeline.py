@@ -22,12 +22,12 @@ default_args = {
     "retry_delay": timedelta(seconds=30),
 }
 START_DATE = datetime(2013, 1, 1)
-END_DATE = datetime(2023, 2, 1)
+END_DATE = datetime(2013, 1, 2)
 
 with DAG(
-    dag_id="usgs_earthquake_pipeline",
+    dag_id="usgs_earthquake_pipeline_5",
     description="""Data engineering pipeline to collect, transform, and load earthquake data from USGS website""",
-    schedule="0 0 1 * *",
+    schedule="0 0 * * *",
     default_args=default_args,
     start_date=START_DATE,
     end_date=END_DATE,

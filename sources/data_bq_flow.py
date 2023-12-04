@@ -41,11 +41,15 @@ class TransformOptions(PipelineOptions):
     def _add_argparse_args(cls, parser: _BeamArgumentParser) -> None:
         parser.add_value_provider_argument(
             "--input",
+            dest="input",
             default="gs://earthquake-usgs_data/raw/parquet/data_2023-01-01.parquet",
             help="Path of the file to read from",
         )
-        parser.add_argument(
-            "--output", required=True, help="Big Query table to store transformed data"
+        parser.add_value_provider_argument(
+            "--output",
+            dest="output",
+            default="earthquake_usgs.data2023",
+            help="Big Query table to store transformed data",
         )
 
 
