@@ -5,7 +5,7 @@
   - [Main Objective](#main-objective)
   - [Dataset Description](#dataset-description)
   - [Automated Data Pipeline Solution](#automated-data-pipeline-solution)
-    - IaC(#iac)
+    - [IaC](#iac)
     - [Orchestration](#orchestration)
     - [Ingestion Process](#ingestion-process)
     - [Transformation Process](#transformation-process)
