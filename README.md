@@ -27,7 +27,9 @@ The steps include:
 - Transform the data in the data lake and load into data warehouse.
 - Create a dashboard.
 
-**PIPELINE IMAGE**
+<p align="left">
+  <img alt="" src="./img/Diagrampng.png" width=100%>
+</p>
 
 ## Dataset Description
 Data for this project is sourced via API requests from the [U.S. Geological Survey](https://earthquake.usgs.gov/earthquakes/search/), providing comprehensive details about earthquake events worldwide. Updated daily, the data can be retrieved in various formats, and this project specifically collects data in GeoJSON format. Each dataset comprises earthquake events, metadata, and a geolocation summary.
@@ -41,21 +43,25 @@ For a more detailed understanding of the data, you can refer to the original [do
 
 To view an example of data response, please refer to the image below:
 
-**DATASET IMAGE**
+<p align="left">
+  <img alt="" src="./img/api response example.png" width=100%>
+</p>
 
-The image below shows the earthquake event from data that has been pulled:
+The image below shows an example of earthquake event from data that has been pulled:
 
-**EARTHQUAKE EVENT DATA IMAGE**
+<p align="left">
+  <img alt="" src="./img/earthquake event example.png" width=100%>
+</p>
 
 ## Technology
-- Cloud platform: Google Cloud
-- Infrastructure as code (IaC): Terraform
-- Containerization: Docker
-- Workflow orchestration: Airflow
-- Batch transformations: Dataflow
-- Data lake: Google Cloud Storage (GCS)
-- Data warehouse: BigQuery
-- Dashboard: Looker Studio
+- **Cloud platform**: Google Cloud
+- **Infrastructure as code (IaC)**: Terraform
+- **Containerization**: Docker
+- **Workflow orchestration**: Airflow
+- **Batch transformations**: Dataflow
+- **Data lake**: Google Cloud Storage (GCS)
+- **Data warehouse**: BigQuery
+- **Dashboard**: Looker Studio
 
 ## Automated Data Pipeline Solution
 ### IaC
@@ -64,28 +70,44 @@ Use Terraform to create Cloud Storage bucket and BigQuery dataset.
 ### Orchestration
 Utilize Apache Airflow for orchestrating the end-to-end data engineering pipeline, covering data ingestion, data transformation, and data loading into the data warehouse. The pipeline is scheduled to run on the first day of every month at 00:00 from January 2013 to November 2023.
 
-**DAG IMAGE**
+<p align="left">
+  <img alt="" src="./img/Airflow dag.png" width=100%>
+</p>
 
 The dag has mean run duration of 5:25 minutes with max duration of 7:24 minutes and min duration of 4:59 minutes.
 
-**DETAIL DAG RUN IMAGE**
+<p align="left">
+  <img alt="" src="./img/dag summary.png" width=100%>
+</p>
 
 ### Ingestion Process
 Make API requests to source systems, capturing data in both GeoJSON and Parquet formats, and store it in Cloud Storage.
 
-**CLOUD STORAGE IMAGE**
+<p align="left">
+  <img alt="" src="./img/Cloud storage json.png" width=75%>
+</p>
+
+<p align="left">
+  <img alt="" src="./img/Cloud storage pq.png" width=75%>
+</p>
 
 ### Transformation Process
 Implement a data transformation using Dataflow utilizing Apache Beam to transform data from the data lake and write the processed data into BigQuery tables.
 
-**DATAFLOW PIPELINE IMAGE**
+<p align="left">
+  <img alt="" src="./img/Dataflow pipeline.png" width=25%>
+</p>
 
 ### Data Warehouse
 Store the transformed data in BigQuery table using One Big Table (OBT) method. The data is organized into separate tables based on the year of the event, the table is partitioned by day and clustered by the region of the event.
 
-**BQ IMAGE: TABLES, SCHEMA, DETAIL**
+<p align="left">
+  <img alt="" src="./img/bigquery.png" width=100%>
+</p>
 
 ### Dashboard
 Establish a connection between Looker Studio and the BigQuery dataset to design dashboard for comprehensive data visualization. The dashboard can be accessed through this [link](https://lookerstudio.google.com/u/0/reporting/bf365be7-376a-40b4-9cad-1e1ce35cbf3c/page/QiZkD).
 
-**DASHBOARD IMAGE**
+<p align="left">
+  <img alt="" src="./img/dashboard.png" width=100%>
+</p>
