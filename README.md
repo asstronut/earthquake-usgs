@@ -1,10 +1,10 @@
-# USGS Earthquake Automated Data Pipeline
+# USGS Earthquake Automated Data Engineering Pipeline
 
-- [USGS Earthquake Automated Data Pipeline](#usgs-earthquake-automated-data-pipeline)
+- [USGS Earthquake Automated Data Engineering Pipeline](#usgs-earthquake-automated-data-engineering-pipeline)
   - [Problem Statement](#problem-statement)
   - [Main Objective](#main-objective)
   - [Dataset Description](#dataset-description)
-  - [Automated Data Pipeline Solution](#automated-data-pipeline-solution)
+  - [Automated Data Engineering Pipeline Solution](#automated-data-engineering-pipeline-solution)
     - [IaC](#iac)
     - [Orchestration](#orchestration)
     - [Ingestion Process](#ingestion-process)
@@ -17,10 +17,10 @@ Earthquakes are natural phenomena that require thorough analysis for better unde
 
 However, challenges arise when managing large volumes of data efficiently. Manual processes for collecting, processing, and loading large amounts of data not only consume significant time but also increase the risk of errors due to repetitive tasks.
 
-Therefore, a solution is needed to optimize data management by creating the "Automated Data Pipeline." This automated data pipeline is designed to address challenges in earthquake analysis by automating the entire process, from data retrieval to loading data into the data warehouse.
+Therefore, a solution is needed to optimize data management by creating the "Automated Data Engineering Pipeline." This automated data engineering pipeline is designed to address challenges in earthquake analysis by automating the entire process, from data retrieval to loading data into the data warehouse.
 
 ## Main Objective
-Build data infrastucture including computation and storage resources, develop data pipeline, and create dashboard as example of the use case for data produced by the data pipeline.
+Build data infrastucture including computation and storage resources, develop data engineering pipeline, and create dashboard as example of the use case for data produced by the data engineering pipeline.
 The steps include:
 - Select dataset.
 - Create pipeline for collect the data from the source and putting it to a data lake.
@@ -63,7 +63,7 @@ The image below shows an example of earthquake event from data that has been pul
 - **Data warehouse**: BigQuery
 - **Dashboard**: Looker Studio
 
-## Automated Data Pipeline Solution
+## Automated Data Engineering Pipeline Solution
 ### IaC
 Use Terraform to create Cloud Storage bucket and BigQuery dataset.
 
