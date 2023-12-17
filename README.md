@@ -40,7 +40,12 @@ To initiate an API request, a link such as https://earthquake.usgs.gov/fdsnws/ev
 For a more detailed understanding of the data, you can refer to the original [documentation](https://earthquake.usgs.gov/data/comcat/).
 
 To view an example of data response, please refer to the image below:
+
 **DATASET IMAGE**
+
+The image below shows the earthquake event from data that has been pulled:
+
+**EARTHQUAKE EVENT DATA IMAGE**
 
 ## Technology
 - Cloud platform: Google Cloud
@@ -55,7 +60,6 @@ To view an example of data response, please refer to the image below:
 ## Automated Data Pipeline Solution
 ### IaC
 Use Terraform to create Cloud Storage bucket and BigQuery dataset.
-**IMAGE**
 
 ### Orchestration
 Utilize Apache Airflow for orchestrating the end-to-end data engineering pipeline, covering data ingestion, data transformation, and data loading into the data warehouse. The pipeline is scheduled to run on the first day of every month at 00:00 from January 2013 to November 2023.
@@ -68,16 +72,20 @@ The dag has mean run duration of 5:25 minutes with max duration of 7:24 minutes 
 
 ### Ingestion Process
 Make API requests to source systems, capturing data in both GeoJSON and Parquet formats, and store it in Cloud Storage.
+
 **CLOUD STORAGE IMAGE**
 
 ### Transformation Process
 Implement a data transformation using Dataflow utilizing Apache Beam to transform data from the data lake and write the processed data into BigQuery tables.
+
 **DATAFLOW PIPELINE IMAGE**
 
 ### Data Warehouse
 Store the transformed data in BigQuery table using One Big Table (OBT) method. The data is organized into separate tables based on the year of the event, the table is partitioned by day and clustered by the region of the event.
+
 **BQ IMAGE: TABLES, SCHEMA, DETAIL**
 
 ### Dashboard
 Establish a connection between Looker Studio and the BigQuery dataset to design dashboard for comprehensive data visualization. The dashboard can be accessed through this [link](https://lookerstudio.google.com/u/0/reporting/bf365be7-376a-40b4-9cad-1e1ce35cbf3c/page/QiZkD).
+
 **DASHBOARD IMAGE**
