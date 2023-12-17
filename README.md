@@ -1,6 +1,6 @@
-# USGS Earthquake Automated Data Engineering Pipeline
+# Earthquake Automated Data Engineering Pipeline
 
-- [USGS Earthquake Automated Data Engineering Pipeline](#usgs-earthquake-automated-data-engineering-pipeline)
+- [Earthquake Automated Data Engineering Pipeline](#earthquake-automated-data-engineering-pipeline)
   - [Problem Statement](#problem-statement)
   - [Main Objective](#main-objective)
   - [Dataset Description](#dataset-description)
